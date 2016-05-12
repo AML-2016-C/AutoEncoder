@@ -84,7 +84,11 @@ class NeuralNetwork(object):
         dWxh, dWhy = np.zeros_like(self.Wxh), np.zeros_like(self.Why)
         dbh, dby = np.zeros_like(self.bh), np.zeros_like(self.by)
         dy = np.copy(probs)
-        dy[t] -= 1
+        #dy[t] -= 1
+        kd=probs.reshape(len(t))
+        for i in range(len(X)):
+            meanError= (kd[i] - t[i])
+            dy[i]=meanError
         dWhy = np.dot(dy, h_a.T)
         dby += dy
         # pdb.set_trace()
@@ -125,7 +129,17 @@ class NeuralNetwork(object):
             for i in xrange(len(inputs)):
                 # Forward pass
                 h_a, probs = self._feed_forward(inputs[i])
-                loss += -np.log(probs[targets[i], 0])
+                print "probs = ",probs.shape
+                print targets[i].shape
+                error = 0
+                for r in range(len(targets[i])):
+                    meanError= (probs[r,0] - targets[i][r])**2
+                    error+= meanError
+
+
+
+                #loss += -np.log(probs[targets[i], 0])
+                loss += error/(2*len(targets[i]))
 
                 # Backpropagation
                 dWxh, dWhy, dbh, dby = self._back_propagation(inputs[i], targets[i], h_a, probs)
@@ -143,7 +157,16 @@ class NeuralNetwork(object):
             for i in xrange(len(validation_inputs)):
                 # Forward pass
                 h_a, probs = self._feed_forward(inputs[i])
-                loss += -np.log(probs[targets[i], 0])
+                #loss += -np.log(probs[targets[i], 0])
+                error = 0
+                for r in range(len(targets[i])):
+                    meanError= (probs[r,0] - targets[i][r])**2
+                    error+= meanError
+
+
+
+                #loss += -np.log(probs[targets[i], 0])
+                loss += error/(2*len(targets[i]))
 
                 # Backpropagation
                 dWxh, dWhy, dbh, dby = self._back_propagation(inputs[i], targets[i], h_a, probs)
@@ -177,24 +200,35 @@ class NeuralNetwork(object):
         pickle.dump(self, open(model_file, 'wb'))
 
 if __name__ == "__main__":
-    nn = NeuralNetwork(4,8,4)
-    # inputs = []
-    # targets = []
-    # for i in range(1000):
-    #     num = random.randint(0,3)
-    #     inp = np.zeros((4,))
-    #     inp[num] = 1
-    #     inputs.append(inp)
-    #     targets.append(num)
+    auto_encoder1= NeuralNetwork(4,8,4)
+    inputs = []
+    targets = []
+    for i in range(1000):
+        num = random.randint(0,3)
+        inp = np.zeros((4,))
+        inp[num] = 1
+        inputs.append(inp)
+        targets.append(num)
 
-    # nn.train(inputs[:800], targets[:800], (inputs[800:], targets[800:]), 10, regularizer_type='L2')
+    print type(inputs[0])
+    print np.size(inputs[0])
+    print targets[:30]
+    auto_encoder1.train(inputs[:800], inputs[:800], (inputs[800:], inputs[800:]), 10, regularizer_type='L2')
     # print nn.predict([0,1,0,0])
 
-    auto_encoder1 = NeuralNetwork(768,16,768)
-    inputs1 = []
-    auto_encoder1.train(inputs1[:800], inputs1[:800], (), 10, regularizer_type='L2')
-    inputs2 = auto_encoder1.h_a
-    auto_encoder2 = NeuralNetwork(16,8,16)
-    auto_encoder2.train(inputs2[:800], inputs2[:800], (), 10, regularizer_type='L2')
-    inputs3 = auto_encoder2.h_a
-    print inputs3
+    # l = pickle.load(open("inputVectors.pkl"))
+    # auto_encoder1 = NeuralNetwork(4,8,768)
+    # inputs1 = l['airplanes']
+    # print type(inputs1[0])
+    # auto_encoder1.train(inputs1[:300], inputs1[:300], (inputs1[:300], inputs1[:300]), 10, regularizer_type='L2')
+    inputs2 = []
+    for i in range(800):
+        h_a, probs = auto_encoder1._feed_forward(inputs[i])
+        h_a = h_a.reshape(8)
+        #print type(h_a[1])
+        inputs2.append(h_a)
+
+    auto_encoder2 = NeuralNetwork(8,4,8)
+    # auto_encoder2.train(inputs2[:300], inputs2[:300], (inputs2[:300], inputs2[:300]), 10, regularizer_type='L2')
+    # inputs3 = auto_encoder2.h_a
+    # print inputs3
